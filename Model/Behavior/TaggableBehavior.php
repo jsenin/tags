@@ -159,7 +159,9 @@ class TaggableBehavior extends ModelBehavior {
  * @return array
  */
 	public function saveTags(Model $model, $string = null, $foreignKey = null, $update = true) {
+
 		if (is_string($string) && !empty($string) && (!empty($foreignKey) || $foreignKey === false)) {
+
 			$tagAlias = $this->settings[$model->alias]['tagAlias'];
 			$taggedAlias = $this->settings[$model->alias]['taggedAlias'];
 			$tagModel = $model->{$tagAlias};
@@ -376,6 +378,8 @@ class TaggableBehavior extends ModelBehavior {
 		return '';
 	}
 
+
+
 /**
  * afterSave callback
  *
@@ -385,11 +389,32 @@ class TaggableBehavior extends ModelBehavior {
  * @return void
  */
 	public function afterSave(Model $model, $created, $options = array()) {
+		
+
+		if ( ! empty( $model->data['Tags']) ){
+			$tags = array() ;
+			
+			foreach ( $model->data['Tags'] as $key => $value ) {
+				$terms = explode($this->settings[$model->alias]['separator'] , $value);
+
+				foreach ( $terms as $term )
+					$tags[] =  sprintf( "%s:%s", $key, $term ) ;
+					
+
+			}
+			$tags = join( $this->settings[$model->alias]['separator'], $tags );
+			$model->data[$model->alias][$this->settings[$model->alias]['field']] = $tags ;
+			
+		}
+		
 		$hasTags = !empty($model->data[$model->alias][$this->settings[$model->alias]['field']]);
+		
 		if ($this->settings[$model->alias]['automaticTagging'] == true && $hasTags) {
 			$this->saveTags($model, $model->data[$model->alias][$this->settings[$model->alias]['field']], $model->id);
+			
 		} else if (!$hasTags && $this->settings[$model->alias]['deleteTagsOnEmptyField']) {
 			$this->deleteTagged($model);
+			
 		}
 	}
 
@@ -429,14 +454,33 @@ class TaggableBehavior extends ModelBehavior {
 		foreach ($results as $key => $row) {
 			$row[$model->alias][$field] = '';
 			if (isset($row[$tagAlias]) && !empty($row[$tagAlias])) {
+
+			foreach ( $row[$tagAlias] as $tag ) {
+				$row[ 'Tags'][$tag['identifier']][] = $tag['name'];
+
+			}
+
 				$row[$model->alias][$field] = $this->tagArrayToString($model, $row[$tagAlias]);
 				if ($unsetInAfterFind == true) {
 					unset($row[$tagAlias]);
 				}
 			}
+			
+			if ( ! empty( $row['Tags']) )
+			foreach( $row['Tags'] as $index => $value  ){
+				$row['Tags'][$index] = join($this->settings[$model->alias]['separator'] . ' ', $value);
+			}
+			
+			
 			$results[$key] = $row;
+			
+
 		}
 		return $results;
 	}
+
+	
+	
+
 
 }

@@ -85,6 +85,10 @@ class Tag extends TagsAppModel {
 		}
 	}
 
+
+
+
+
 /**
  * Edits an existing tag, allows only to modify upper/lowercased characters
  *
